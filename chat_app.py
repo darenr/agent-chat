@@ -35,12 +35,18 @@ from pydantic_ai.messages import (
     TextPart,
     UserPromptPart,
 )
+from pydantic_ai.providers.ollama import OllamaProvider
+from pydantic_ai.models.openai import OpenAIChatModel
 
 # 'if-token-present' means nothing will be sent (and the example will work) if you don't have logfire configured
 logfire.configure(send_to_logfire="if-token-present")
 logfire.instrument_pydantic_ai()
 
-agent = Agent("openai:gpt-4.1-mini")
+model = OpenAIChatModel(
+    model_name="deepseek-r1:8b", provider=OllamaProvider(base_url="http://localhost:11434/v1")
+)
+agent = Agent(model=model)
+
 THIS_DIR = Path(__file__).parent
 
 
