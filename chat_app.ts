@@ -1,4 +1,14 @@
 import { marked } from 'https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.0/lib/marked.esm.js'
+import { markedHighlight } from 'https://cdn.jsdelivr.net/npm/marked-highlight@2/src/index.js'
+
+marked.use(markedHighlight({
+  highlight: function(code, lang) {
+    console.log('Highlighting code block', {lang, code})
+    const language = (window as any).hljs.getLanguage(lang) ? lang : 'plaintext';
+    const highlighted = (window as any).hljs.highlight(code, { language }).value;
+    return `<pre class="hljs p-2"><code class="language-${language}">${highlighted}</code></pre>`;
+  }
+}));
 const convElement = document.getElementById('conversation')
 
 const promptInput = document.getElementById('prompt-input') as HTMLInputElement

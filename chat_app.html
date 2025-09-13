@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agent Orange</title>
+  <title>Quantum Chat</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <style>
     #toolbar {
       position: sticky;
@@ -15,6 +16,9 @@
     main {
       max-width: 75vw;
       background-color: white;
+    }
+    [data-bs-theme="dark"] main {
+      background-color: #2d3748;
     }
     #conversation .user::before {
       content: 'You asked: ';
@@ -47,12 +51,18 @@
       border-color: #000;
       border-bottom-color: transparent;
     }
+    [data-bs-theme="dark"] #spinner {
+      border-color: #fff;
+      border-bottom-color: transparent;
+    }
     body {
       background-image: url('/static/assets/green-bg.jpg');
       background-size: cover;
       background-attachment: fixed;
       background-repeat: no-repeat;
     }
+
+
 
   </style>
 </head>
@@ -82,6 +92,8 @@
 </html>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/typescript/5.6.3/typescript.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/plugins/line-numbers.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 
 <script type="module">
