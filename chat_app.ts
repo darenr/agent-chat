@@ -14,7 +14,7 @@ marked.use(markedHighlight({
     console.log('Highlighting code block', {lang, code})
     const language = (window as any).hljs.getLanguage(lang) ? lang : 'plaintext';
     const highlighted = (window as any).hljs.highlight(code, { language }).value;
-    return `<pre class="hljs p-2"><code class="language-${language}">${highlighted}</code></pre>`;
+    return `<pre class="hljs p-4"><code class="language-${language}">${highlighted}</code></pre>`;
   }
 }));
 const convElement = document.getElementById('conversation')
