@@ -4,6 +4,11 @@ const convElement = document.getElementById('conversation')
 const promptInput = document.getElementById('prompt-input') as HTMLInputElement
 const spinner = document.getElementById('spinner')
 
+function processMermaid(content: string): string {
+  // Replace ```mermaid or ```mermaidjs blocks with <div class="mermaid">
+  return content.replace(/```(?:mermaid|mermaidjs)\n([\s\S]*?)\n```/g, '<div class="mermaid">$1</div>')
+}
+
 // stream the response and render messages as each chunk is received
 // data is sent as newline-delimited JSON
 async function onFetchResponse(response: Response): Promise<void> {
@@ -57,7 +62,13 @@ function addMessages(responseText: string) {
       msgDiv.classList.add('border-top', 'pt-2', role)
       convElement.appendChild(msgDiv)
     }
-    msgDiv.innerHTML = marked.parse(content)
+    msgDiv.innerHTML = marked.parse(processMermaid(content))
+  }
+  // Initialize Mermaid diagrams
+  try {
+    (window as any).mermaid.init()
+  } catch (e) {
+    console.warn('Mermaid init failed:', e)
   }
   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
 }

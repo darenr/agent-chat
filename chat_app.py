@@ -23,6 +23,7 @@ import fastapi
 import logfire
 from fastapi import Depends, Request
 from fastapi.responses import FileResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from typing_extensions import LiteralString, ParamSpec, TypedDict
 
 from pydantic_ai import Agent
@@ -35,17 +36,21 @@ from pydantic_ai.messages import (
     TextPart,
     UserPromptPart,
 )
-from pydantic_ai.providers.ollama import OllamaProvider
-from pydantic_ai.models.openai import OpenAIChatModel
+from openai.types.responses import WebSearchToolParam
+
+from pydantic_ai.models.openai import OpenAIResponsesModel, OpenAIResponsesModelSettings
 
 # 'if-token-present' means nothing will be sent (and the example will work) if you don't have logfire configured
 logfire.configure(send_to_logfire="if-token-present")
 logfire.instrument_pydantic_ai()
 
-model = OpenAIChatModel(
-    model_name="deepseek-r1:8b", provider=OllamaProvider(base_url="http://localhost:11434/v1")
+
+model_settings = OpenAIResponsesModelSettings(
+    openai_builtin_tools=[WebSearchToolParam(type="web_search_preview")],
 )
-agent = Agent(model=model)
+model = OpenAIResponsesModel("gpt-4o-mini")
+agent = Agent(model=model, model_settings=model_settings)
+
 
 THIS_DIR = Path(__file__).parent
 
@@ -58,6 +63,7 @@ async def lifespan(_app: fastapi.FastAPI):
 
 app = fastapi.FastAPI(lifespan=lifespan)
 logfire.instrument_fastapi(app)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 @app.get("/")
