@@ -1,5 +1,13 @@
-import { marked } from 'https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.0/lib/marked.esm.js'
+import { Marked } from 'https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.0/lib/marked.esm.js'
 import { markedHighlight } from 'https://cdn.jsdelivr.net/npm/marked-highlight@2/src/index.js'
+
+
+const marked = new Marked({
+      gfm: true, // Enable GFM
+      tables: true, // GFM tables is required for GFM
+      breaks: true, // GFM line breaks
+      // Other options...
+    });
 
 marked.use(markedHighlight({
   highlight: function(code, lang) {
