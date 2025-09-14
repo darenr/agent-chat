@@ -1,7 +1,6 @@
 import { Marked } from 'https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.0/lib/marked.esm.js'
 import { markedHighlight } from 'https://cdn.jsdelivr.net/npm/marked-highlight@2/src/index.js'
 
-
 const marked = new Marked({
       gfm: true, // Enable GFM
       tables: true, // GFM tables is required for GFM
@@ -9,12 +8,24 @@ const marked = new Marked({
       // Other options...
     });
 
+
 marked.use(markedHighlight({
   highlight: function(code, lang) {
     console.log('Highlighting code block', {lang, code})
     const language = (window as any).hljs.getLanguage(lang) ? lang : 'plaintext';
     const highlighted = (window as any).hljs.highlight(code, { language }).value;
-    return `<pre class="hljs p-4"><code class="language-${language}">${highlighted}</code></pre>`;
+    const escapedCode = code.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    if ('mermaid' === lang || 'mermaidjs' === lang) {
+      return `<pre class="hljs p-4"><code class="language-${language}">${code}</code></pre>`;
+    } else {
+      return `<div class="code-block-container">
+        <button class="copy-btn btn btn-sm btn-outline-secondary">Copy</button>
+        <pre class="hljs p-2" data-original-code="${escapedCode}"><code class="language-${language}">${highlighted}</code></pre>
+      </div>`;
+    }
+
+
   }
 }));
 const convElement = document.getElementById('conversation')
@@ -88,6 +99,23 @@ function addMessages(responseText: string) {
   } catch (e) {
     console.warn('Mermaid init failed:', e)
   }
+  // Add copy functionality to code blocks
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    if (!(btn as any)._listenerAdded) {
+      btn.addEventListener('click', function() {
+        const pre = this.nextElementSibling as HTMLPreElement;
+        const text = pre.getAttribute('data-original-code') || '';
+        navigator.clipboard.writeText(text).then(() => {
+          const originalText = this.textContent;
+          this.textContent = 'Copied!';
+          setTimeout(() => this.textContent = originalText, 2000);
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
+      });
+      (btn as any)._listenerAdded = true;
+    }
+  });
   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
 }
 
