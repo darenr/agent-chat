@@ -183,3 +183,4 @@ users.txt
 *.hnsw
 *.meta
 *.db
+.chat_app_messages.sqlite
