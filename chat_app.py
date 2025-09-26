@@ -26,7 +26,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from typing_extensions import LiteralString, ParamSpec, TypedDict
 
-from pydantic_ai import Agent
+from pydantic_ai import Agent, CodeExecutionTool
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 from pydantic_ai.messages import (
     ModelMessage,
@@ -44,9 +44,10 @@ from pydantic_ai.models.openai import OpenAIResponsesModel, OpenAIResponsesModel
 logfire.configure(send_to_logfire="if-token-present")
 logfire.instrument_pydantic_ai()
 
-
 model_settings = OpenAIResponsesModelSettings(
     openai_builtin_tools=[WebSearchToolParam(type="web_search_preview")],
+    builtin_tools=[CodeExecutionTool()],
+    openai_include_code_execution_outputs=True,
 )
 model = OpenAIResponsesModel("gpt-4o-mini")
 agent = Agent(model=model, model_settings=model_settings)

@@ -9,6 +9,7 @@ const marked = new Marked({
     });
 
 
+
 marked.use(markedHighlight({
   highlight: function(code, lang) {
     console.log('Highlighting code block', {lang, code})
@@ -37,6 +38,7 @@ function processMermaid(content: string): string {
   // Replace ```mermaid or ```mermaidjs blocks with <div class="mermaid">
   return content.replace(/```(?:mermaid|mermaidjs)\n([\s\S]*?)\n```/g, '<div class="mermaid">$1</div>')
 }
+
 
 // stream the response and render messages as each chunk is received
 // data is sent as newline-delimited JSON
