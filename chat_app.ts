@@ -2,17 +2,30 @@ import { Marked } from 'https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.0/lib
 import { markedHighlight } from 'https://cdn.jsdelivr.net/npm/marked-highlight@2/src/index.js'
 
 const marked = new Marked({
-      gfm: true, // Enable GFM
-      tables: true, // GFM tables is required for GFM
-      breaks: true, // GFM line breaks
-      // Other options...
-    });
 
+});
+
+
+var renderer = new marked.Renderer();
+renderer.link = function (href, title, text) {
+  var link = marked.Renderer.prototype.link.call(this, href, title, text);
+  return link.replace("<a", "<a target='_blank' ");
+};
+
+marked.setOptions({
+  gfm: true, // GitHub Flavored Markdown
+  breaks: true, // Enable line breaks
+  pedantic: false, // Disable pedantic mode
+  sanitize: false, // Disable sanitization
+  tables: true,
+  silent: true, // Suppress warnings
+  renderer: renderer, // Use custom renderer that opens links in new tab
+});
 
 
 marked.use(markedHighlight({
-  highlight: function(code, lang) {
-    console.log('Highlighting code block', {lang, code})
+  highlight: function (code, lang) {
+    console.log('Highlighting code block', { lang, code })
     const language = (window as any).hljs.getLanguage(lang) ? lang : 'plaintext';
     const highlighted = (window as any).hljs.highlight(code, { language }).value;
     const escapedCode = code.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -48,7 +61,7 @@ async function onFetchResponse(response: Response): Promise<void> {
   if (response.ok) {
     const reader = response.body.getReader()
     while (true) {
-      const {done, value} = await reader.read()
+      const { done, value } = await reader.read()
       if (done) {
         break
       }
@@ -61,7 +74,7 @@ async function onFetchResponse(response: Response): Promise<void> {
     promptInput.focus()
   } else {
     const text = await response.text()
-    console.error(`Unexpected response: ${response.status}`, {response, text})
+    console.error(`Unexpected response: ${response.status}`, { response, text })
     throw new Error(`Unexpected response: ${response.status}`)
   }
 }
@@ -83,7 +96,7 @@ function addMessages(responseText: string) {
   const messages: Message[] = lines.filter(line => line.length > 1).map(j => JSON.parse(j))
   for (const message of messages) {
     // we use the timestamp as a crude element id
-    const {timestamp, role, content} = message
+    const { timestamp, role, content } = message
     const id = `msg-${timestamp}`
     let msgDiv = document.getElementById(id)
     if (!msgDiv) {
@@ -93,7 +106,17 @@ function addMessages(responseText: string) {
       msgDiv.classList.add('border-top', 'pt-2', role)
       convElement.appendChild(msgDiv)
     }
-    msgDiv.innerHTML = marked.parse(processMermaid(content))
+    // First, process MathJax on the raw content to handle LaTeX.
+    // Create a temporary div to let MathJax do its work.
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = content;
+    if (window.MathJax) {
+      window.MathJax.typesetPromise([tempDiv]).catch((err) =>
+        console.log("MathJax typesetting error:", err)
+      );
+    }
+
+    msgDiv.innerHTML = marked.parse(processMermaid(tempDiv.innerHTML))
   }
   // Initialize Mermaid diagrams
   try {
@@ -104,7 +127,7 @@ function addMessages(responseText: string) {
   // Add copy functionality to code blocks
   document.querySelectorAll('.copy-btn').forEach(btn => {
     if (!(btn as any)._listenerAdded) {
-      btn.addEventListener('click', function() {
+      btn.addEventListener('click', function () {
         const pre = this.nextElementSibling as HTMLPreElement;
         const text = pre.getAttribute('data-original-code') || '';
         navigator.clipboard.writeText(text).then(() => {
@@ -135,7 +158,7 @@ async function onSubmit(e: SubmitEvent): Promise<void> {
   promptInput.value = ''
   promptInput.disabled = true
 
-  const response = await fetch('/chat/', {method: 'POST', body})
+  const response = await fetch('/chat/', { method: 'POST', body })
   await onFetchResponse(response)
 }
 
