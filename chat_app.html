@@ -128,6 +128,9 @@
 <body>
   <header id="toolbar" class="text-white p-4 d-flex justify-content-between align-items-center">
     <h2 class="mb-0">Chat</h2>
+    <div>
+      <button id="new-chat-btn" class="btn btn-outline-light btn-sm">New Chat</button>
+    </div>
   </header>
   <main class="border rounded mx-auto my-5 p-4">
     <p>Ask me anything...</p>
@@ -181,6 +184,27 @@
 <script>
   document.getElementById('clear-btn').addEventListener('click', function () {
     document.getElementById('conversation').innerHTML = '';
+  });
+</script>
+
+<script>
+  document.getElementById('new-chat-btn').addEventListener('click', async function () {
+    if (!confirm('Start a new chat? This will delete all saved messages.')) return;
+    try {
+      const resp = await fetch('/chat/clear', { method: 'POST' });
+      if (resp.status === 204) {
+        document.getElementById('conversation').innerHTML = '';
+        // also clear prompt input
+        const pi = document.getElementById('prompt-input');
+        if (pi) pi.value = '';
+      } else {
+        console.error('Failed to clear chat', resp);
+        alert('Failed to clear chat on server');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error clearing chat');
+    }
   });
 </script>
 

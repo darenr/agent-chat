@@ -57,9 +57,11 @@ THIS_DIR = Path(__file__).parent
 
 
 @asynccontextmanager
-async def lifespan(_app: fastapi.FastAPI):
+async def lifespan(app: fastapi.FastAPI):
+    # create DB connection and attach it to app.state so dependencies can access it
     async with Database.connect() as db:
-        yield {"db": db}
+        app.state.db = db
+        yield
 
 
 app = fastapi.FastAPI(lifespan=lifespan)
@@ -79,7 +81,8 @@ async def main_ts() -> FileResponse:
 
 
 async def get_db(request: Request) -> Database:
-    return request.state.db
+    # Database is stored on the application state in the lifespan manager
+    return request.app.state.db
 
 
 @app.get("/chat/")
@@ -152,6 +155,13 @@ async def post_chat(
     return StreamingResponse(stream_messages(), media_type="text/plain")
 
 
+@app.post("/chat/clear")
+async def clear_chat(database: Database = Depends(get_db)) -> Response:
+    """Clear stored chat messages."""
+    await database.clear_messages()
+    return Response(status_code=204)
+
+
 P = ParamSpec("P")
 R = TypeVar("R")
 
@@ -202,6 +212,10 @@ class Database:
             commit=True,
         )
         await self._asyncify(self.con.commit)
+
+    async def clear_messages(self) -> None:
+        """Delete all stored messages."""
+        await self._asyncify(self._execute, "DELETE FROM messages;", commit=True)
 
     async def get_messages(self) -> list[ModelMessage]:
         c = await self._asyncify(self._execute, "SELECT message_list FROM messages order by id")
