@@ -167,3 +167,68 @@ document.querySelector('form').addEventListener('submit', (e) => onSubmit(e).cat
 
 // load messages on page load
 fetch('/chat/').then(onFetchResponse).catch(onError)
+
+// Load and display files
+async function loadFiles() {
+  console.log('Starting to load files...')
+  try {
+    const response = await fetch('/files/')
+    console.log('Files response status:', response.status)
+
+    if (response.ok) {
+      const data = await response.json()
+      console.log('Files data received:', data)
+
+      const fileListElement = document.getElementById('file-list')
+      console.log('File list element:', fileListElement)
+
+      if (fileListElement) {
+        if (data.files && Array.isArray(data.files)) {
+          fileListElement.innerHTML = ''
+          console.log('Found', data.files.length, 'files')
+
+          if (data.files.length === 0) {
+            fileListElement.innerHTML = '<div class="text-muted">No files found</div>'
+          } else {
+            data.files.forEach((filename: string) => {
+              console.log('Adding file:', filename)
+              const fileItem = document.createElement('div')
+              fileItem.className = 'file-item'
+              fileItem.textContent = filename
+              fileItem.addEventListener('click', () => {
+                console.log('Selected file:', filename)
+              })
+              fileListElement.appendChild(fileItem)
+            })
+          }
+        } else {
+          console.error('Invalid data structure:', data)
+          fileListElement.innerHTML = '<div class="text-danger">Invalid file data</div>'
+        }
+      } else {
+        console.error('File list element not found')
+      }
+    } else {
+      console.error('Failed to load files:', response.status)
+      const responseText = await response.text()
+      console.error('Response text:', responseText)
+
+      const fileListElement = document.getElementById('file-list')
+      if (fileListElement) {
+        fileListElement.innerHTML = '<div class="text-danger">Failed to load files</div>'
+      }
+    }
+  } catch (error) {
+    console.error('Error loading files:', error)
+    const fileListElement = document.getElementById('file-list')
+    if (fileListElement) {
+      fileListElement.innerHTML = '<div class="text-danger">Error loading files</div>'
+    }
+  }
+}
+
+// Load files on page load with a small delay to ensure DOM is ready
+setTimeout(() => {
+  console.log('DOM ready, loading files...')
+  loadFiles()
+}, 100)

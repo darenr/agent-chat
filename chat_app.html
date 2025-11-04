@@ -11,10 +11,8 @@
   <script src="https://cdn.jsdelivr.net/npm/marked-highlight/lib/index.umd.js"></script>
 
   <!-- KaTeX for LaTeX rendering -->
-  <!-- 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script> 
-  -->
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
 
 
 
@@ -27,13 +25,58 @@
       /* bright orange */
     }
 
+    .main-container {
+      max-width: 95vw;
+      display: flex;
+      gap: 20px;
+    }
+
     main {
-      max-width: 75vw;
+      flex: 1;
       background-color: white;
     }
 
     [data-bs-theme="dark"] main {
       background-color: #2d3748;
+    }
+
+    .file-sidebar {
+      width: 300px;
+      background-color: white;
+      border: 1px solid #dee2e6;
+      border-radius: 0.375rem;
+      padding: 1rem;
+      height: fit-content;
+      position: sticky;
+      top: 80px;
+    }
+
+    [data-bs-theme="dark"] .file-sidebar {
+      background-color: #2d3748;
+      border-color: #4a5568;
+      color: white;
+    }
+
+    .file-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .file-item {
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
+
+    .file-item:hover {
+      background-color: #f8f9fa;
+    }
+
+    [data-bs-theme="dark"] .file-item:hover {
+      background-color: #4a5568;
     }
 
     #conversation .user::before {
@@ -130,23 +173,31 @@
     <h2 class="mb-0">O</h2>
 
   </header>
-  <main class="border rounded mx-auto my-5 p-4">
-    <p>Ask me anything...</p>
-    <div id="conversation" class="px-2"></div>
-    <div class="d-flex justify-content-center mb-3">
-      <div id="spinner"></div>
-    </div>
-    <form method="post">
-      <input id="prompt-input" name="prompt" class="form-control" />
-      <div class="d-flex justify-content-between mt-2">
-        <button id="clear-btn" type="button" class="btn btn-secondary">Clear</button>
-        <button class="btn btn-primary">Send</button>
+  <div class="main-container mx-auto my-5">
+    <main class="border rounded p-4">
+      <p>Ask me anything...</p>
+      <div id="conversation" class="px-2"></div>
+      <div class="d-flex justify-content-center mb-3">
+        <div id="spinner"></div>
       </div>
-    </form>
-    <div id="error" class="d-none text-danger">
-      Error occurred, check the browser developer console for more information.
-    </div>
-  </main>
+      <form method="post">
+        <input id="prompt-input" name="prompt" class="form-control" />
+        <div class="d-flex justify-content-between mt-2">
+          <button id="clear-btn" type="button" class="btn btn-secondary">Clear</button>
+          <button class="btn btn-primary">Send</button>
+        </div>
+      </form>
+      <div id="error" class="d-none text-danger">
+        Error occurred, check the browser developer console for more information.
+      </div>
+    </main>
+    <aside class="file-sidebar">
+      <h5 class="mb-3">Files</h5>
+      <div id="file-list" class="file-list">
+        <div class="text-muted">Loading files...</div>
+      </div>
+    </aside>
+  </div>
 </body>
 
 </html>
@@ -182,6 +233,41 @@
 <script>
   document.getElementById('clear-btn').addEventListener('click', function () {
     document.getElementById('conversation').innerHTML = '';
+  });
+</script>
+
+<script>
+  // Ensure files are loaded after page is ready
+  window.addEventListener('load', function () {
+    console.log('Window loaded, attempting to load files...');
+    setTimeout(function () {
+      // Try to load files directly here as a fallback
+      fetch('/files/')
+        .then(response => {
+          console.log('Direct fetch response status:', response.status);
+          return response.json();
+        })
+        .then(data => {
+          console.log('Direct fetch data:', data);
+          const fileListElement = document.getElementById('file-list');
+          if (fileListElement && data.files) {
+            fileListElement.innerHTML = '';
+            data.files.forEach(function (filename) {
+              const fileItem = document.createElement('div');
+              fileItem.className = 'file-item';
+              fileItem.textContent = filename;
+              fileListElement.appendChild(fileItem);
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Direct fetch error:', error);
+          const fileListElement = document.getElementById('file-list');
+          if (fileListElement) {
+            fileListElement.innerHTML = '<div class="text-danger">Error: ' + error.message + '</div>';
+          }
+        });
+    }, 1000); // Wait 1 second to ensure everything is loaded
   });
 </script>
 
