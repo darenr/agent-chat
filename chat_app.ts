@@ -164,16 +164,24 @@ async function onSubmit(e: SubmitEvent): Promise<void> {
   if (selectedFiles.size > 0) {
     const fileContents = []
     for (const filename of selectedFiles) {
-      try {
-        const response = await fetch(`/files/${filename}`)
-        if (response.ok) {
-          const data = await response.json()
-          fileContents.push(`File: ${filename}\n\`\`\`\n${data.content}\n\`\`\``)
-        } else {
-          console.error(`Failed to load file ${filename}`)
+      const ext = filename.split('.').pop()?.toLowerCase() || ''
+
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+        fileContents.push(await handleImage(filename))
+      } else if (ext === 'pdf') {
+        fileContents.push(await handlePDF(filename))
+      } else {
+        try {
+          const response = await fetch(`/files/${filename}`)
+          if (response.ok) {
+            const data = await response.json()
+            fileContents.push(`File: ${filename}\n\`\`\`\n${data.content}\n\`\`\``)
+          } else {
+            console.error(`Failed to load file ${filename}`)
+          }
+        } catch (error) {
+          console.error(`Error loading file ${filename}:`, error)
         }
-      } catch (error) {
-        console.error(`Error loading file ${filename}:`, error)
       }
     }
     if (fileContents.length > 0) {
@@ -183,6 +191,18 @@ async function onSubmit(e: SubmitEvent): Promise<void> {
 
   const response = await fetch('/chat/', { method: 'POST', body })
   await onFetchResponse(response)
+}
+
+async function handleImage(filename: string): Promise<string> {
+  console.log('Handling image:', filename)
+  // TODO: Implement image handling logic
+  return `[Image: ${filename}]`
+}
+
+async function handlePDF(filename: string): Promise<string> {
+  console.log('Handling PDF:', filename)
+  // TODO: Implement PDF handling logic
+  return `[PDF: ${filename}]`
 }
 
 // call onSubmit when the form is submitted (e.g. user clicks the send button or hits Enter)
