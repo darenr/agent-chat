@@ -35,6 +35,7 @@ model_settings = OpenAIResponsesModelSettings(
     openai_builtin_tools=[WebSearchToolParam(type="web_search_preview")],
     builtin_tools=[CodeExecutionTool()],
     openai_include_code_execution_outputs=True,
+    instructions='You have access to a Python interpreter tool. Use it whenever you need to perform calculations or execute code to find the answer.'
 )
 model = OpenAIResponsesModel("gpt-4o-mini")
 agent = Agent(model=model, model_settings=model_settings)
@@ -157,17 +158,70 @@ def to_chat_message(m: ModelMessage) -> ChatMessage:
     raise UnexpectedModelBehavior(f"Unexpected message type for chat app: {m}")
 
 
+
+async def handle_image(filename: str) -> str:
+    """Placeholder for image handling."""
+    print(f"Handling image: {filename}")
+    return f"[Image: {filename}]"
+
+
+async def handle_pdf(filename: str) -> str:
+    """Placeholder for PDF handling."""
+    print(f"Handling PDF: {filename}")
+    return f"[PDF: {filename}]"
+
+
+async def process_file(filename: str) -> str:
+    """Process a file and return its content or a description."""
+    try:
+        # Security check
+        if ".." in filename or "/" in filename or "\\" in filename:
+            return f"Error: Invalid filename {filename}"
+
+        file_path = THIS_DIR / filename
+        if not file_path.exists() or not file_path.is_file():
+            return f"Error: File not found {filename}"
+
+        ext = file_path.suffix.lower()
+        if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
+            return await handle_image(filename)
+        elif ext == ".pdf":
+            return await handle_pdf(filename)
+        else:
+            content = file_path.read_text(encoding="utf-8")
+            return f"File: {filename}\n```\n{content}\n```"
+    except Exception as e:
+        return f"Error reading file {filename}: {e}"
+
+
 @app.post("/chat/")
-async def post_chat(prompt: Annotated[str, fastapi.Form()]) -> StreamingResponse:
+async def post_chat(
+    prompt: Annotated[str, fastapi.Form()],
+    selected_files: Annotated[list[str], fastapi.Form()] = [],
+) -> StreamingResponse:
     async def stream_messages():
         """Streams new line delimited JSON `Message`s to the client."""
+        
+        # Process selected files
+        file_contexts = []
+        for filename in selected_files:
+            file_contexts.append(await process_file(filename))
+        
+        full_prompt = prompt
+        if file_contexts:
+            full_prompt += "\n\nContext:\n" + "\n\n".join(file_contexts)
+
         # stream the user prompt so that can be displayed straight away
         yield (
             json.dumps(
                 {
                     "role": "user",
                     "timestamp": datetime.now(tz=timezone.utc).isoformat(),
-                    "content": prompt,
+                    "content": prompt, # Display original prompt to user, but send full_prompt to agent? 
+                                       # Actually, usually better to show what was sent. 
+                                       # But for large files, maybe just show the prompt.
+                                       # Let's show the original prompt to keep UI clean, 
+                                       # but the agent sees the full context.
                 }
             ).encode("utf-8")
             + b"\n"
@@ -175,7 +229,7 @@ async def post_chat(prompt: Annotated[str, fastapi.Form()]) -> StreamingResponse
         # get the chat history so far to pass as context to the agent
         messages = messages_store
         # run the agent with the user prompt and the chat history
-        async with agent.run_stream(prompt, message_history=messages) as result:
+        async with agent.run_stream(full_prompt, message_history=messages) as result:
             async for text in result.stream_output(debounce_by=0.01):
                 # text here is a `str` and the frontend wants
                 # JSON encoded ModelResponse, so we create one
@@ -183,6 +237,9 @@ async def post_chat(prompt: Annotated[str, fastapi.Form()]) -> StreamingResponse
                 yield json.dumps(to_chat_message(m)).encode("utf-8") + b"\n"
 
         # add new messages (e.g. the user prompt and the agent response in this case) to memory
+        # We store the full prompt with context so the agent remembers it in history
+        # Or should we store just the user prompt? PydanticAI handles history.
+        # If we pass full_prompt to run_stream, it's treated as the new user message.
         messages_store.extend(result.new_messages())
 
     return StreamingResponse(stream_messages(), media_type="text/plain")
