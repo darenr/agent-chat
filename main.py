@@ -8,6 +8,7 @@ Run with:
 from __future__ import annotations as _annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Literal
@@ -26,20 +27,23 @@ from pydantic_ai.messages import (
     TextPart,
     UserPromptPart,
 )
-import logging
-import logfire
+
 
 from openai.types.responses import WebSearchToolParam
 
 from pydantic_ai.models.openai import OpenAIResponsesModel, OpenAIResponsesModelSettings
 
-
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 model_settings = OpenAIResponsesModelSettings(
     openai_builtin_tools=[WebSearchToolParam(type="web_search_preview")],
     builtin_tools=[CodeExecutionTool()],
     openai_include_code_execution_outputs=True,
-    instructions='You have access to a Python interpreter tool. Use it whenever you need to perform calculations or execute code to find the answer.'
+    instructions="You have access to a Python interpreter tool. Use it whenever you need to perform calculations or execute code to find the answer.",
 )
 model = OpenAIResponsesModel("gpt-4o-mini")
 agent = Agent(model=model, model_settings=model_settings)
@@ -104,24 +108,24 @@ async def get_file_content(filename: str) -> Response:
     try:
         # Security check: prevent directory traversal
         if ".." in filename or "/" in filename or "\\" in filename:
-             return Response(
+            return Response(
                 json.dumps({"error": "Invalid filename"}).encode("utf-8"),
                 media_type="application/json",
-                status_code=400
+                status_code=400,
             )
-        
+
         file_path = THIS_DIR / filename
-        
+
         if not file_path.exists() or not file_path.is_file():
-             return Response(
+            return Response(
                 json.dumps({"error": "File not found"}).encode("utf-8"),
                 media_type="application/json",
-                status_code=404
+                status_code=404,
             )
 
         # Read file content
         content = file_path.read_text(encoding="utf-8")
-        
+
         return Response(
             json.dumps({"content": content}).encode("utf-8"),
             media_type="application/json",
@@ -130,7 +134,7 @@ async def get_file_content(filename: str) -> Response:
         return Response(
             json.dumps({"error": str(e)}).encode("utf-8"),
             media_type="application/json",
-            status_code=500
+            status_code=500,
         )
 
 
@@ -160,7 +164,6 @@ def to_chat_message(m: ModelMessage) -> ChatMessage:
                 "content": first_part.content,
             }
     raise UnexpectedModelBehavior(f"Unexpected message type for chat app: {m}")
-
 
 
 async def handle_image(filename: str) -> str:
@@ -205,12 +208,12 @@ async def post_chat(
 ) -> StreamingResponse:
     async def stream_messages():
         """Streams new line delimited JSON `Message`s to the client."""
-        
+
         # Process selected files
         file_contexts = []
         for filename in selected_files:
             file_contexts.append(await process_file(filename))
-        
+
         full_prompt = prompt
         if file_contexts:
             full_prompt += "\n\nContext:\n" + "\n\n".join(file_contexts)
@@ -221,15 +224,12 @@ async def post_chat(
                 {
                     "role": "user",
                     "timestamp": datetime.now(tz=timezone.utc).isoformat(),
-                    "content": prompt, # Display original prompt to user, but send full_prompt to agent? 
-                                       # Actually, usually better to show what was sent. 
-                                       # But for large files, maybe just show the prompt.
-                                       # Let's show the original prompt to keep UI clean, 
-                                       # but the agent sees the full context.
+                    "content": prompt,
                 }
             ).encode("utf-8")
             + b"\n"
         )
+
         # get the chat history so far to pass as context to the agent
         messages = messages_store
         # run the agent with the user prompt and the chat history
@@ -239,6 +239,18 @@ async def post_chat(
                 # JSON encoded ModelResponse, so we create one
                 m = ModelResponse(parts=[TextPart(text)], timestamp=result.timestamp())
                 yield json.dumps(to_chat_message(m)).encode("utf-8") + b"\n"
+
+            # After streaming is complete, log all tool calls that occurred
+            for msg in result.all_messages():
+                if isinstance(msg, ModelResponse):
+                    for part in msg.parts:
+                        if hasattr(part, "tool_name"):
+                            logger.info(f"🔧 Tool called: {part.tool_name}")
+                            if hasattr(part, "args"):
+                                logger.info(f"   Args: {part.args}")
+                        elif part.__class__.__name__ == "ToolCallPart":
+                            logger.info(f"🔧 Tool called: {part.tool_name}")
+                            logger.info(f"   Args: {part.args}")
 
         # add new messages (e.g. the user prompt and the agent response in this case) to memory
         # We store the full prompt with context so the agent remembers it in history
