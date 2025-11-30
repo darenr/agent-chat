@@ -79,6 +79,16 @@
       background-color: #4a5568;
     }
 
+    .file-item.selected {
+      background-color: #e2e8f0;
+      border-left: 4px solid #3a3632;
+    }
+
+    [data-bs-theme="dark"] .file-item.selected {
+      background-color: #4a5568;
+      border-left: 4px solid #fff;
+    }
+
     #conversation .user::before {
       content: 'You asked: ';
       font-weight: bold;
@@ -236,40 +246,7 @@
   });
 </script>
 
-<script>
-  // Ensure files are loaded after page is ready
-  window.addEventListener('load', function () {
-    console.log('Window loaded, attempting to load files...');
-    setTimeout(function () {
-      // Try to load files directly here as a fallback
-      fetch('/files/')
-        .then(response => {
-          console.log('Direct fetch response status:', response.status);
-          return response.json();
-        })
-        .then(data => {
-          console.log('Direct fetch data:', data);
-          const fileListElement = document.getElementById('file-list');
-          if (fileListElement && data.files) {
-            fileListElement.innerHTML = '';
-            data.files.forEach(function (filename) {
-              const fileItem = document.createElement('div');
-              fileItem.className = 'file-item';
-              fileItem.textContent = filename;
-              fileListElement.appendChild(fileItem);
-            });
-          }
-        })
-        .catch(error => {
-          console.error('Direct fetch error:', error);
-          const fileListElement = document.getElementById('file-list');
-          if (fileListElement) {
-            fileListElement.innerHTML = '<div class="text-danger">Error: ' + error.message + '</div>';
-          }
-        });
-    }, 1000); // Wait 1 second to ensure everything is loaded
-  });
-</script>
+
 
 
 <script>

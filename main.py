@@ -93,6 +93,42 @@ async def get_files() -> Response:
         )
 
 
+@app.get("/files/{filename}")
+async def get_file_content(filename: str) -> Response:
+    """Get the content of a specific file."""
+    try:
+        # Security check: prevent directory traversal
+        if ".." in filename or "/" in filename or "\\" in filename:
+             return Response(
+                json.dumps({"error": "Invalid filename"}).encode("utf-8"),
+                media_type="application/json",
+                status_code=400
+            )
+        
+        file_path = THIS_DIR / filename
+        
+        if not file_path.exists() or not file_path.is_file():
+             return Response(
+                json.dumps({"error": "File not found"}).encode("utf-8"),
+                media_type="application/json",
+                status_code=404
+            )
+
+        # Read file content
+        content = file_path.read_text(encoding="utf-8")
+        
+        return Response(
+            json.dumps({"content": content}).encode("utf-8"),
+            media_type="application/json",
+        )
+    except Exception as e:
+        return Response(
+            json.dumps({"error": str(e)}).encode("utf-8"),
+            media_type="application/json",
+            status_code=500
+        )
+
+
 class ChatMessage(TypedDict):
     """Format of messages sent to the browser."""
 

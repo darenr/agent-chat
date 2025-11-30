@@ -43,6 +43,7 @@ marked.use(markedHighlight({
   }
 }));
 const convElement = document.getElementById('conversation')
+const selectedFiles = new Set<string>()
 
 const promptInput = document.getElementById('prompt-input') as HTMLInputElement
 const spinner = document.getElementById('spinner')
@@ -158,6 +159,28 @@ async function onSubmit(e: SubmitEvent): Promise<void> {
   promptInput.value = ''
   promptInput.disabled = true
 
+  // Process selected files
+  let finalPrompt = promptInput.value
+  if (selectedFiles.size > 0) {
+    const fileContents = []
+    for (const filename of selectedFiles) {
+      try {
+        const response = await fetch(`/files/${filename}`)
+        if (response.ok) {
+          const data = await response.json()
+          fileContents.push(`File: ${filename}\n\`\`\`\n${data.content}\n\`\`\``)
+        } else {
+          console.error(`Failed to load file ${filename}`)
+        }
+      } catch (error) {
+        console.error(`Error loading file ${filename}:`, error)
+      }
+    }
+    if (fileContents.length > 0) {
+      body.set('prompt', `${body.get('prompt')}\n\nContext:\n${fileContents.join('\n\n')}`)
+    }
+  }
+
   const response = await fetch('/chat/', { method: 'POST', body })
   await onFetchResponse(response)
 }
@@ -197,6 +220,13 @@ async function loadFiles() {
               fileItem.textContent = filename
               fileItem.addEventListener('click', () => {
                 console.log('Selected file:', filename)
+                if (selectedFiles.has(filename)) {
+                  selectedFiles.delete(filename)
+                  fileItem.classList.remove('selected')
+                } else {
+                  selectedFiles.add(filename)
+                  fileItem.classList.add('selected')
+                }
               })
               fileListElement.appendChild(fileItem)
             })
