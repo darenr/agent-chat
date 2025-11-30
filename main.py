@@ -26,9 +26,13 @@ from pydantic_ai.messages import (
     TextPart,
     UserPromptPart,
 )
+import logging
+import logfire
+
 from openai.types.responses import WebSearchToolParam
 
 from pydantic_ai.models.openai import OpenAIResponsesModel, OpenAIResponsesModelSettings
+
 
 
 model_settings = OpenAIResponsesModelSettings(
