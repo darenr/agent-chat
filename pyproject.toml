@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.116.1",
+    "mcp-run-python>=0.0.21",
     "opentelemetry-instrumentation-sqlite3>=0.57b0",
     "pydantic-ai>=1.0.4",
     "ruff>=0.13.0",

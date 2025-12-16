@@ -1,8 +1,8 @@
-"""Simple chat app example build with FastAPI.
+"""Simple chat app with FastAPI.
 
 Run with:
 
-    uv run -m chat_app
+    uv run -m main.py
 """
 
 from __future__ import annotations as _annotations
@@ -27,11 +27,12 @@ from pydantic_ai.messages import (
     TextPart,
     UserPromptPart,
 )
-
-
 from openai.types.responses import WebSearchToolParam
 
 from pydantic_ai.models.openai import OpenAIResponsesModel, OpenAIResponsesModelSettings
+
+THIS_DIR = Path(__file__).parent
+
 
 # Configure logging
 logging.basicConfig(
@@ -39,17 +40,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# load the "system-prompt.txt" file for the agent instructions
+# if system-prompt.txt exists, otherwise use a defau    lt prompt
+if not (THIS_DIR / "system-prompt.txt").exists():
+    system_prompt = (
+        "You are a helpful AI assistant. Use the available tools to assist the user."
+    )
+else:
+    with open(THIS_DIR / "system-prompt.txt", "r", encoding="utf-8") as f:
+        system_prompt = f.read().strip()
+        logger.info(f"Loaded system prompt for agent {system_prompt!r}")
+
 model_settings = OpenAIResponsesModelSettings(
     openai_builtin_tools=[WebSearchToolParam(type="web_search_preview")],
     builtin_tools=[CodeExecutionTool()],
+    system_prompt=system_prompt,
     openai_include_code_execution_outputs=True,
     instructions="You have access to a Python interpreter tool. Use it whenever you need to perform calculations or execute code to find the answer.",
 )
 model = OpenAIResponsesModel("gpt-4o-mini")
 agent = Agent(model=model, model_settings=model_settings)
 
-
-THIS_DIR = Path(__file__).parent
 
 # In-memory storage for chat messages
 messages_store: list[ModelMessage] = []
