@@ -2,6 +2,8 @@
 
 A modern chat application built with FastAPI and PydanticAI, featuring streaming AI responses, code execution, web search capabilities, and rich markdown rendering.
 
+There's also an experimental code execution sandbox (uses Deno) that is being worked on, as an MCP server.
+
 ## Overview
 
 This project demonstrates a full-stack chat application that leverages OpenAI's GPT-4o-mini model through the PydanticAI framework. The application includes a FastAPI backend with SQLite persistence and a dynamic frontend that supports real-time streaming responses, syntax highlighting, Mermaid diagrams, mathematical equations, and more.
