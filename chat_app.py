@@ -2,7 +2,7 @@
 
 Run with:
 
-    uv run -m main.py
+    uv run -m chat_app
 """
 
 from __future__ import annotations as _annotations
@@ -282,4 +282,4 @@ async def clear_chat() -> Response:
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", reload=True, reload_dirs=[str(THIS_DIR)])
+    uvicorn.run("chat_app:app", reload=True, reload_dirs=[str(THIS_DIR)])
